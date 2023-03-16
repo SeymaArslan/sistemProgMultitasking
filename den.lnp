@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"multitask.obj" 
+TO "den" 
+RAMSIZE(256) 

@@ -1,0 +1,229 @@
+C51 COMPILER V8.12   MULTITASK                                                             04/04/2014 17:51:58 PAGE 1   
+
+
+C51 COMPILER V8.12, COMPILATION OF MODULE MULTITASK
+OBJECT MODULE PLACED IN multitask.OBJ
+COMPILER INVOKED BY: C:\Keil\C51\BIN\C51.EXE multitask.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1           #include <stdio.h> /* prototype declarations for I/O functions */
+   2          #include <string.h>
+   3          #include <math.h>
+   4          #include <reg51.h>
+   5          #define TRUE 1
+   6          #define FALSE 0
+   7          unsigned int task0_interval, task1_interval, task2_interval;
+   8          unsigned int task0_max_interval, task1_max_interval, task2_max_interval;
+   9          bit task0_enabled, task1_enabled, task2_enabled;
+  10          float task0_variable, task1_variable, variable;
+  11          //---------------------------------------------------------
+  12          //---------------------------------------------------------------------------
+  13          void Timer0_Initial(void)
+  14          {
+  15   1      TMOD=TMOD&0xF2;
+  16   1      TR0=1;
+  17   1      ET0=1;
+  18   1      }
+  19          //---------------------------------------------------------------------------
+  20          void Serial_Initial(void)
+  21          {
+  22   1      PCON=PCON|0x80;//Smod=1
+  23   1      SCON = 0x52; // SCON: mode 1, 8-bit UART, enable rcvr
+  24   1      TMOD = 0x20; // TMOD: timer 1, mode 2, 8-bit reload
+  25   1      TH1 = TL1 = 0xfd; // TH1: reload value for 19200 baud
+  26   1      TR1 = 1; // TR1: timer 1 run
+  27   1      ES=1;//serial interrupt enabled
+  28   1      RI=0;
+  29   1      }
+  30          //---------------------------------------------------------
+  31          Putch(unsigned char c)
+  32          {
+  33   1      TI=0;
+  34   1      SBUF=c;
+  35   1      while( !TI );
+  36   1      }
+  37          //---------------------------------------------------------
+  38          unsigned char Getch()
+  39          {
+  40   1      unsigned char c;
+  41   1      while( !RI );
+  42   1      c = SBUF;
+  43   1      RI = 0;
+  44   1      return (c);
+  45   1      }
+  46          //---------------------------------------------------------
+  47          void Serial_Printf ( char *c )
+  48          {
+  49   1      unsigned char m;
+  50   1      for(m=0; c[m] != '\n'; m++)
+  51   1      {
+  52   2      if(m>80) return;
+  53   2      Putch(c[m]);
+  54   2      }
+  55   1      }
+C51 COMPILER V8.12   MULTITASK                                                             04/04/2014 17:51:58 PAGE 2   
+
+  56          //---------------------------------------------------------
+  57          unsigned char Char_Msb(unsigned char c)
+  58          {
+  59   1      c=c&240;
+  60   1      c=c>>4;
+  61   1      c=c+48;
+  62   1      return(c);
+  63   1      } 
+  64          //---------------------------------------------------------
+  65          unsigned char Char_Lsb(unsigned char c)
+  66          {
+  67   1      c=c&15;
+  68   1      c=c+48;
+  69   1      return(c);
+  70   1      }
+  71          //---------------------------------------------------------
+  72          unsigned char BinToDec(unsigned char c)
+  73          {
+  74   1      if (c>89) c=c+6;
+  75   1      if (c>79) c=c+6;
+  76   1      if (c>69) c=c+6;
+  77   1      if (c>59) c=c+6;
+  78   1      if (c>49) c=c+6;
+  79   1      if (c>39) c=c+6;
+  80   1      if (c>29) c=c+6;
+  81   1      if (c>19) c=c+6;
+  82   1      if (c>9) c=c+6;
+  83   1      return(c);
+  84   1      }
+  85          //---------------------------------------------------------
+  86          void Serial_Write_Asci ( unsigned char c )
+  87          {
+  88   1      unsigned char tmp;
+  89   1      tmp = BinToDec(c);
+  90   1      Putch( Char_Msb(tmp) );
+  91   1      Putch( Char_Lsb(tmp) );
+  92   1      } 
+  93          //---------------------------------------------------------
+  94          char *Serial_Scanf()
+  95          {
+  96   1      unsigned char i, c;
+  97   1      char cm[16];
+  98   1      i=0;
+  99   1      do
+ 100   1      {
+ 101   2      c = Getch();
+ 102   2      cm[i]= c;
+ 103   2      i=i+1;
+ 104   2      } while ( c != 0x0D );
+ 105   1      i=i-1;
+ 106   1      cm[i]='\n';
+ 107   1      return (&cm);
+ 108   1      } 
+ 109          //---------------------------------------------------------
+ 110          void Serial_Interrupt(void) interrupt 4
+ 111          {
+ 112   1      char cmd[16];
+ 113   1      EA=0;//global interrupt disable
+ 114   1      TI=0;
+ 115   1      if( RI==1 )
+ 116   1              {
+ 117   2              strcpy( &cmd, Serial_Scanf() );
+C51 COMPILER V8.12   MULTITASK                                                             04/04/2014 17:51:58 PAGE 3   
+
+ 118   2              if( !strcmp(cmd,"t task0\n") ) task0_enabled=FALSE; // command = terminate task0 ...
+ 119   2              if( !strcmp(cmd,"t task1\n") ) task1_enabled=FALSE;
+ 120   2              if( !strcmp(cmd,"t task2\n") ) task2_enabled=FALSE;
+ 121   2              if( !strcmp( cmd,"c task0\n") ) task0_enabled=TRUE;
+ 122   2              if( !strcmp( cmd,"c task1\n") ) task1_enabled=TRUE;
+ 123   2              if( !strcmp( cmd,"c task2\n") ) task2_enabled=TRUE;
+ 124   2              if( !strcmp( cmd,"i task0\n") ) task0_max_interval = task0_max_interval / 2;
+ 125   2              if( !strcmp( cmd,"i task1\n") ) task1_max_interval = task1_max_interval / 2;
+ 126   2              if( !strcmp( cmd,"i task2\n") ) task2_max_interval = task2_max_interval / 2;
+ 127   2              if( !strcmp( cmd,"d task0\n") ) task0_max_interval = task0_max_interval * 2;
+ 128   2              if( !strcmp( cmd,"d task1\n") ) task1_max_interval = task1_max_interval * 2;
+ 129   2              if( !strcmp( cmd,"d task2\n") ) task2_max_interval = task2_max_interval * 2;
+ 130   2              }
+ 131   1      EA=1;//global interrupt enable
+ 132   1      }
+ 133          //---------------------------------------------------------
+ 134          void timer0 (void) interrupt 1
+ 135          {
+ 136   1      char tmp[32];
+ 137   1      EA=0;//global interrupt disable
+ 138   1      ET0=0;//timer intr dis
+ 139   1      task0_interval++;
+ 140   1      task1_interval++;
+ 141   1      task2_interval++;
+ 142   1      variable += 0.0001;
+ 143   1      if( (task0_enabled)&&(task0_interval>=task0_max_interval) ) //1 sn for 100
+ 144   1              {
+ 145   2              task0_interval=0;
+ 146   2                      {
+ 147   3                      task0_variable += 1; // write task0's program here..
+ 148   3                      //...........
+ 149   3                      }
+ 150   2              }
+ 151   1      if( (task1_enabled)&&(task1_interval>=task1_max_interval) ) //2sn for 200
+ 152   1              {
+ 153   2              task1_interval=0;
+ 154   2                      {
+ 155   3                      task1_variable += 1; // write task1's program here..
+ 156   3                      //...........
+ 157   3                      }
+ 158   2              }
+ 159   1      if( (task2_enabled)&&(task2_interval>=task2_max_interval) ) //0.1sn for 10
+ 160   1              {
+ 161   2              task2_interval=0;
+ 162   2                      { //write task2's program here..
+ 163   3                      if(task0_enabled==TRUE)
+ 164   3                              {
+ 165   4                              sprintf( tmp," Task0 is executing.. %0.0f\n",task0_variable);
+ 166   4                              Serial_Printf(&tmp);
+ 167   4                              }
+ 168   3                      if(task1_enabled==TRUE)
+ 169   3                              {
+ 170   4                              sprintf( tmp," Task1 is executing.. %0.0f\n",task1_variable);
+ 171   4                              Serial_Printf(&tmp);
+ 172   4                              }
+ 173   3                      Putch(0x0D);//enter, next line //task2's program ends here.
+ 174   3                      }
+ 175   2              }
+ 176   1      TF0=0;//timer0 flag
+ 177   1      ET0=1;//timer intr enb
+ 178   1      EA=1;//global interrupt enable
+ 179   1      }
+C51 COMPILER V8.12   MULTITASK                                                             04/04/2014 17:51:58 PAGE 4   
+
+ 180          //---------------------------------------------------------
+ 181          /****************/
+ 182          /* main program */
+ 183          /****************/
+ 184          void main (void) { /* execution starts here after stack init */
+ 185   1      IE=0x00;//all individual interrupts are disabled
+ 186   1      EA=1;//global interrupt enable
+ 187   1      Timer0_Initial();
+ 188   1      Serial_Initial();
+ 189   1      task0_enabled=TRUE;
+ 190   1      task1_enabled=TRUE;
+ 191   1      task2_enabled=TRUE;
+ 192   1      task0_max_interval=100;//1sn these max interval values defines the priorites...
+ 193   1      task1_max_interval=200;//2sn max priority is given to min interval value...
+ 194   1      task2_max_interval=50;//0.5sn
+ 195   1              while (1) { /* An embedded program does not stop and */
+ 196   2              ; /* ... */ /* never returns. We've used an endless */
+ 197   2              } /* loop. You may wish to put in your own */
+ 198   1      }
+ 199          
+ 200          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    964    ----
+   CONSTANT SIZE    =    166    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     24      67
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      3    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

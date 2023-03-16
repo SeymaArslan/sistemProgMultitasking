@@ -1,0 +1,18 @@
+<html>
+<body>
+<pre>
+<h1>µVision3 Build Log</h1>
+<h2>Project:</h2>
+C:\Users\Administrator\Desktop\sistem prog\den.uv2
+Project File Date:  04/04/2014
+
+<h2>Output:</h2>
+Build target 'Target 1'
+assembling STARTUP.A51...
+compiling multitask.c...
+linking...
+*** WARNING L16: UNCALLED SEGMENT, IGNORED FOR OVERLAY PROCESS
+    SEGMENT: ?PR?_SERIAL_WRITE_ASCI?MULTITASK
+Program Size: data=126.4 xdata=0 code=4273
+creating hex file from "den"...
+"den" - 0 Error(s), 1 Warning(s).
